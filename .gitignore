@@ -1,0 +1,15 @@
+# This public repository intentionally contains deployment materials only.
+.env
+runtime/
+release/
+app/
+license_server/
+tests/
+scripts/
+Dockerfile
+Dockerfile.*
+*.py
+*.pyc
+*.pem
+*.key
+__pycache__/
