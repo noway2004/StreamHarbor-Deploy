@@ -1,26 +1,120 @@
-version: "3"
+version: "3.8"
 
 services:
   app:
-    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.6}
+    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.7}
     container_name: streamharbor
-    volumes:
-      - "${CONFIG_PATH:-/vol1/1000/docker/streamharbor/config}:/app/runtime"
-      - "${LIBRARY_ROOT:-/vol1/1000/影视库}:${LIBRARY_ROOT:-/vol1/1000/影视库}"
+    restart: unless-stopped
+    init: true
+    # ?????????????? Emby ???????? NAS ???
+    network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - APP_ENV=production
-      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.6}
-      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://127.0.0.1:8000}
-      - DATABASE_URL=sqlite:////app/runtime/pan115.db
-      - TASK_MODE=inline
-      - PROVIDER_MODE=cookie
-      - GATEWAY_SECRET=${GATEWAY_SECRET:-change-this-secret-before-public-access}
-      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
-      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
+      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.7}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8000}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-streamharbor}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@127.0.0.1:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-streamharbor}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/1
+      - PROVIDER_MODE=${PROVIDER_MODE:-cookie}
+      - GATEWAY_SECRET=${GATEWAY_SECRET:?set GATEWAY_SECRET in .env}
+      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - TASK_MODE=celery
+      - TRANSFER_WAIT_SECONDS=${TRANSFER_WAIT_SECONDS:-25}
       - ENABLE_DOCS=false
+      - LICENSE_REQUIRED=true
+      - LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-https://sh.emxy.de}
+      - LICENSE_MACHINE_ID=${LICENSE_MACHINE_ID:-}
+    volumes:
+      - "${CONFIG_PATH:-/vol1/1000/docker/streamharbor/config}:/app/runtime"
+      - "${LIBRARY_ROOT:-/vol1/1000/???}:${LIBRARY_ROOT:-/vol1/1000/???}"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+
+  worker:
+    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.7}
+    container_name: streamharbor-worker
+    restart: unless-stopped
+    init: true
+    network_mode: host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=INFO", "--concurrency=${CELERY_CONCURRENCY:-2}"]
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - APP_ENV=production
+      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.7}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-streamharbor}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@127.0.0.1:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-streamharbor}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/1
+      - PROVIDER_MODE=${PROVIDER_MODE:-cookie}
+      - GATEWAY_SECRET=${GATEWAY_SECRET:?set GATEWAY_SECRET in .env}
+      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - TASK_MODE=celery
+      - TRANSFER_WAIT_SECONDS=${TRANSFER_WAIT_SECONDS:-25}
+      - ENABLE_DOCS=false
+      - LICENSE_REQUIRED=true
+      - LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-https://sh.emxy.de}
+      - LICENSE_MACHINE_ID=${LICENSE_MACHINE_ID:-}
+    volumes:
+      - "${CONFIG_PATH:-/vol1/1000/docker/streamharbor/config}:/app/runtime"
+      - "${LIBRARY_ROOT:-/vol1/1000/???}:${LIBRARY_ROOT:-/vol1/1000/???}"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: streamharbor-postgres
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - POSTGRES_DB=${POSTGRES_DB:-streamharbor}
+      - POSTGRES_USER=${POSTGRES_USER:-streamharbor}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     ports:
-      - "${APP_PORT:-8000}:8000"
-      - "${EMBY_PROXY_PORT:-8097}:8097"
-    network_mode: bridge
-    restart: always
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: streamharbor-redis
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+    name: streamharbor_postgres_data
+  redis_data:
+    name: streamharbor_redis_data
