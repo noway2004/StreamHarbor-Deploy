@@ -2,11 +2,11 @@ version: "3.8"
 
 services:
   app:
-    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.7}
+    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.9}
     container_name: streamharbor
     restart: unless-stopped
     init: true
-    # ?????????????? Emby ???????? NAS ???
+    # 使用主机网络，便于 Emby 客户端访问 Web 配置中的自定义反向代理端口。
     network_mode: host
     depends_on:
       postgres:
@@ -16,7 +16,7 @@ services:
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - APP_ENV=production
-      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.7}
+      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.9}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8000}
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-streamharbor}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@127.0.0.1:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-streamharbor}
       - REDIS_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
@@ -24,8 +24,8 @@ services:
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/1
       - PROVIDER_MODE=${PROVIDER_MODE:-cookie}
       - GATEWAY_SECRET=${GATEWAY_SECRET:?set GATEWAY_SECRET in .env}
-      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
-      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
+      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
       - TASK_MODE=celery
       - TRANSFER_WAIT_SECONDS=${TRANSFER_WAIT_SECONDS:-25}
       - ENABLE_DOCS=false
@@ -34,7 +34,7 @@ services:
       - LICENSE_MACHINE_ID=${LICENSE_MACHINE_ID:-}
     volumes:
       - "${CONFIG_PATH:-/vol1/1000/docker/streamharbor/config}:/app/runtime"
-      - "${LIBRARY_ROOT:-/vol1/1000/???}:${LIBRARY_ROOT:-/vol1/1000/???}"
+      - "${LIBRARY_ROOT:-/vol1/1000/影视库}:${LIBRARY_ROOT:-/vol1/1000/影视库}"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
       interval: 15s
@@ -43,7 +43,7 @@ services:
       start_period: 45s
 
   worker:
-    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.7}
+    image: noway2004/streamharbor:v${STREAMHARBOR_VERSION:-1.0.0.9}
     container_name: streamharbor-worker
     restart: unless-stopped
     init: true
@@ -57,15 +57,15 @@ services:
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       - APP_ENV=production
-      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.7}
+      - APP_VERSION=${STREAMHARBOR_VERSION:-1.0.0.9}
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-streamharbor}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@127.0.0.1:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-streamharbor}
       - REDIS_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}@127.0.0.1:${REDIS_PORT:-6379}/1
       - PROVIDER_MODE=${PROVIDER_MODE:-cookie}
       - GATEWAY_SECRET=${GATEWAY_SECRET:?set GATEWAY_SECRET in .env}
-      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
-      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/???}
+      - LIBRARY_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
+      - LIBRARY_ALLOWED_ROOT=${LIBRARY_ROOT:-/vol1/1000/影视库}
       - TASK_MODE=celery
       - TRANSFER_WAIT_SECONDS=${TRANSFER_WAIT_SECONDS:-25}
       - ENABLE_DOCS=false
@@ -74,7 +74,7 @@ services:
       - LICENSE_MACHINE_ID=${LICENSE_MACHINE_ID:-}
     volumes:
       - "${CONFIG_PATH:-/vol1/1000/docker/streamharbor/config}:/app/runtime"
-      - "${LIBRARY_ROOT:-/vol1/1000/???}:${LIBRARY_ROOT:-/vol1/1000/???}"
+      - "${LIBRARY_ROOT:-/vol1/1000/影视库}:${LIBRARY_ROOT:-/vol1/1000/影视库}"
 
   postgres:
     image: postgres:16-alpine
