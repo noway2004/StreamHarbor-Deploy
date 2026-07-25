@@ -71,7 +71,7 @@ cp .env.example .env
 使用 NAS 的文本编辑器打开 `/opt/streamharbor/.env`：
 
 ```dotenv
-STREAMHARBOR_VERSION=1.0.0.9
+STREAMHARBOR_VERSION=1.0.0.10
 TZ=Asia/Shanghai
 PUBLIC_BASE_URL=http://你的NAS地址:8000
 CONFIG_PATH=/vol1/1000/docker/streamharbor/config
@@ -100,7 +100,7 @@ cd /opt/streamharbor
 # 先检查 Compose 变量和语法
 docker compose config
 
-# 拉取 v1.0.0.9 镜像并启动全部四个容器
+# 拉取 v1.0.0.10 镜像并启动全部四个容器
 docker compose pull
 docker compose up -d
 
@@ -152,10 +152,10 @@ docker compose logs --tail=100 redis
 
 ## 8. 更新版本
 
-每次修复仅递增第四段版本号，例如 `v1.0.0.8` 升级为 `v1.0.0.9`。在 `.env` 中修改：
+每次修复仅递增第四段版本号，例如 `v1.0.0.9` 升级为 `v1.0.0.10`。在 `.env` 中修改：
 
 ```dotenv
-STREAMHARBOR_VERSION=1.0.0.9
+STREAMHARBOR_VERSION=1.0.0.10
 ```
 
 然后执行：

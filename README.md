@@ -10,7 +10,7 @@
 - 一个用于保存配置的宿主机目录，例如 `/vol1/1000/docker/streamharbor/config`。
 - 一个 Emby 可读取、且容器也可读取的影视库目录，例如 `/vol1/1000/影视库`。
 
-> 当前模板版本：`v1.0.0.9`。首次部署和每次升级都请使用固定版本号，不建议生产环境直接使用 `latest`。
+> 当前模板版本：`v1.0.0.10`。首次部署和每次升级都请使用固定版本号，不建议生产环境直接使用 `latest`。
 
 ## 三步启动
 
@@ -89,7 +89,7 @@ docker compose down
 编辑 `.env` 的版本号后执行：
 
 ```dotenv
-STREAMHARBOR_VERSION=1.0.0.9
+STREAMHARBOR_VERSION=1.0.0.10
 ```
 
 ```bash
